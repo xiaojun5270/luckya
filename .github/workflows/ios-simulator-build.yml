@@ -11,9 +11,6 @@ on:
 jobs:
   build:
     runs-on: macos-15
-    defaults:
-      run:
-        working-directory: lucky-ios-panel
 
     steps:
       - name: Checkout
@@ -60,7 +57,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: LuckyRemotePanel-simulator-app
-          path: lucky-ios-panel/artifacts/LuckyRemotePanel-simulator-app.zip
+          path: artifacts/LuckyRemotePanel-simulator-app.zip
           if-no-files-found: error
 
       - name: Upload DerivedData logs
@@ -68,5 +65,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: LuckyRemotePanel-derived-data
-          path: lucky-ios-panel/build/DerivedData
+          path: build/DerivedData
           if-no-files-found: ignore
