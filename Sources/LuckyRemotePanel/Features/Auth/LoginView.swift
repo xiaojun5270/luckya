@@ -1,25 +1,38 @@
 import SwiftUI
 
 struct LoginView: View {
-    @State private var server = "http://192.168.9.102:16601"
-    @State private var username = ""
-    @State private var password = ""
+    @EnvironmentObject private var sessionStore: SessionStore
+    @StateObject private var viewModel = LoginViewModel()
 
     var body: some View {
         VStack(spacing: 20) {
             Text("登录远程管理面板")
                 .font(.largeTitle.bold())
                 .foregroundStyle(.white)
-            TextField("服务器地址", text: $server)
+
+            TextField("服务器地址", text: $viewModel.server)
                 .textFieldStyle(.roundedBorder)
-            TextField("用户名", text: $username)
+            TextField("用户名", text: $viewModel.username)
                 .textFieldStyle(.roundedBorder)
-            SecureField("密码", text: $password)
+            SecureField("密码", text: $viewModel.password)
                 .textFieldStyle(.roundedBorder)
-            Button("登录") {}
-                .buttonStyle(.borderedProminent)
+
+            if let error = viewModel.errorMessage {
+                Text(error)
+                    .font(.caption)
+                    .foregroundStyle(.red)
+            }
+
+            Button(viewModel.isLoading ? "登录中..." : "登录") {
+                Task { await viewModel.login() }
+            }
+            .buttonStyle(.borderedProminent)
+            .disabled(viewModel.isLoading)
         }
         .padding()
         .background(Color.black.ignoresSafeArea())
+        .onAppear {
+            viewModel.bind(sessionStore: sessionStore)
+        }
     }
 }
