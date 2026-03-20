@@ -2,11 +2,7 @@ import SwiftUI
 
 struct DashboardView: View {
     @EnvironmentObject private var sessionStore: SessionStore
-    @StateObject private var viewModel: DashboardViewModel
-
-    init() {
-        _viewModel = StateObject(wrappedValue: DashboardViewModel(sessionStore: SessionStore()))
-    }
+    @StateObject private var viewModel = DashboardViewModel()
 
     var body: some View {
         NavigationStack {
@@ -20,7 +16,7 @@ struct DashboardView: View {
             }
             .background(Color.black.ignoresSafeArea())
             .navigationTitle("远程管理面板")
-            .task {
+            .task(id: sessionStore.authToken?.token) {
                 viewModel.bind(sessionStore: sessionStore)
                 await viewModel.load()
             }

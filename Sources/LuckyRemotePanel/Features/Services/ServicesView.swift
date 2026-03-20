@@ -2,11 +2,7 @@ import SwiftUI
 
 struct ServicesView: View {
     @EnvironmentObject private var sessionStore: SessionStore
-    @StateObject private var viewModel: ServicesViewModel
-
-    init() {
-        _viewModel = StateObject(wrappedValue: ServicesViewModel(sessionStore: SessionStore()))
-    }
+    @StateObject private var viewModel = ServicesViewModel()
 
     var body: some View {
         NavigationStack {
@@ -37,7 +33,7 @@ struct ServicesView: View {
             .scrollContentBackground(.hidden)
             .background(Color.black.ignoresSafeArea())
             .navigationTitle("服务")
-            .task {
+            .task(id: sessionStore.authToken?.token) {
                 viewModel.bind(sessionStore: sessionStore)
                 await viewModel.load()
             }

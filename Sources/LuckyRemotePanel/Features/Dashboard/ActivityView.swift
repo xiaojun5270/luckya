@@ -2,11 +2,7 @@ import SwiftUI
 
 struct ActivityView: View {
     @EnvironmentObject private var sessionStore: SessionStore
-    @StateObject private var viewModel: DashboardViewModel
-
-    init() {
-        _viewModel = StateObject(wrappedValue: DashboardViewModel(sessionStore: SessionStore()))
-    }
+    @StateObject private var viewModel = DashboardViewModel()
 
     var body: some View {
         NavigationStack {
@@ -25,7 +21,7 @@ struct ActivityView: View {
             .scrollContentBackground(.hidden)
             .background(Color.black.ignoresSafeArea())
             .navigationTitle("动态")
-            .task {
+            .task(id: sessionStore.authToken?.token) {
                 viewModel.bind(sessionStore: sessionStore)
                 await viewModel.load()
             }

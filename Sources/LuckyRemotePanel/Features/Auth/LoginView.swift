@@ -31,7 +31,7 @@ struct LoginView: View {
         }
         .padding()
         .background(Color.black.ignoresSafeArea())
-        .onAppear {
+        .task {
             viewModel.bind(sessionStore: sessionStore)
         }
     }
