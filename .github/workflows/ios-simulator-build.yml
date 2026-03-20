@@ -1,0 +1,72 @@
+name: iOS Simulator Build
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+
+jobs:
+  build:
+    runs-on: macos-15
+    defaults:
+      run:
+        working-directory: lucky-ios-panel
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode.app
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate Xcode project
+        run: xcodegen generate
+
+      - name: Show project structure
+        run: |
+          ls -la
+          ls -la LuckyRemotePanel.xcodeproj
+
+      - name: Build for iOS Simulator
+        run: |
+          xcodebuild \
+            -project LuckyRemotePanel.xcodeproj \
+            -scheme LuckyRemotePanel \
+            -configuration Release \
+            -sdk iphonesimulator \
+            -destination 'platform=iOS Simulator,name=iPhone 16' \
+            -derivedDataPath build/DerivedData \
+            clean build \
+            CODE_SIGNING_ALLOWED=NO
+
+      - name: Collect app bundle
+        run: |
+          APP_PATH=$(find build/DerivedData/Build/Products -type d -name "LuckyRemotePanel.app" | head -n 1)
+          if [ -z "$APP_PATH" ]; then
+            echo "LuckyRemotePanel.app not found"
+            exit 1
+          fi
+          mkdir -p artifacts
+          ditto -c -k --sequesterRsrc --keepParent "$APP_PATH" artifacts/LuckyRemotePanel-simulator-app.zip
+          echo "APP_PATH=$APP_PATH"
+
+      - name: Upload simulator app artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: LuckyRemotePanel-simulator-app
+          path: lucky-ios-panel/artifacts/LuckyRemotePanel-simulator-app.zip
+          if-no-files-found: error
+
+      - name: Upload DerivedData logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: LuckyRemotePanel-derived-data
+          path: lucky-ios-panel/build/DerivedData
+          if-no-files-found: ignore
