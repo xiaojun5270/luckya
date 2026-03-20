@@ -37,7 +37,7 @@ jobs:
             -scheme LuckyRemotePanel \
             -configuration Release \
             -sdk iphonesimulator \
-            -destination 'platform=iOS Simulator,name=iPhone 16' \
+            -destination 'generic/platform=iOS Simulator' \
             -derivedDataPath build/DerivedData \
             clean build \
             CODE_SIGNING_ALLOWED=NO
