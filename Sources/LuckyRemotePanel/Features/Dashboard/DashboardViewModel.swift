@@ -20,7 +20,13 @@ final class DashboardViewModel: ObservableObject {
     }
 
     func load() async {
-        guard let sessionStore, let token = sessionStore.authToken?.token else { return }
+        guard let sessionStore, let token = sessionStore.authToken?.token, !token.isEmpty else {
+            summaries = []
+            activities = []
+            errorMessage = nil
+            return
+        }
+
         isLoading = true
         errorMessage = nil
         defer { isLoading = false }
@@ -31,6 +37,8 @@ final class DashboardViewModel: ObservableObject {
             summaries = try await status
             activities = try await logs
         } catch {
+            summaries = []
+            activities = []
             errorMessage = error.localizedDescription
         }
     }

@@ -19,7 +19,12 @@ final class ServicesViewModel: ObservableObject {
     }
 
     func load() async {
-        guard let sessionStore, let token = sessionStore.authToken?.token else { return }
+        guard let sessionStore, let token = sessionStore.authToken?.token, !token.isEmpty else {
+            services = []
+            errorMessage = nil
+            return
+        }
+
         isLoading = true
         errorMessage = nil
         defer { isLoading = false }
@@ -27,6 +32,7 @@ final class ServicesViewModel: ObservableObject {
         do {
             services = try await api.fetchModules(baseURL: sessionStore.config.baseURL, token: token)
         } catch {
+            services = []
             errorMessage = error.localizedDescription
         }
     }
