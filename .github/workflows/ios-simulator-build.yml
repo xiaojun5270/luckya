@@ -1,4 +1,4 @@
-name: iOS Simulator Build
+name: iOS Build Artifacts
 
 on:
   workflow_dispatch:
@@ -38,20 +38,56 @@ jobs:
             -configuration Release \
             -sdk iphonesimulator \
             -destination 'generic/platform=iOS Simulator' \
-            -derivedDataPath build/DerivedData \
+            -derivedDataPath build/DerivedDataSimulator \
             clean build \
             CODE_SIGNING_ALLOWED=NO
 
-      - name: Collect app bundle
+      - name: Collect simulator app bundle
         run: |
-          APP_PATH=$(find build/DerivedData/Build/Products -type d -name "LuckyRemotePanel.app" | head -n 1)
+          APP_PATH=$(find build/DerivedDataSimulator/Build/Products -type d -name "LuckyRemotePanel.app" | head -n 1)
           if [ -z "$APP_PATH" ]; then
-            echo "LuckyRemotePanel.app not found"
+            echo "LuckyRemotePanel.app for simulator not found"
             exit 1
           fi
           mkdir -p artifacts
           ditto -c -k --sequesterRsrc --keepParent "$APP_PATH" artifacts/LuckyRemotePanel-simulator-app.zip
-          echo "APP_PATH=$APP_PATH"
+          echo "SIMULATOR_APP_PATH=$APP_PATH"
+
+      - name: Build unsigned device app
+        run: |
+          xcodebuild \
+            -project LuckyRemotePanel.xcodeproj \
+            -scheme LuckyRemotePanel \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath build/DerivedDataDevice \
+            clean build \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY=""
+
+      - name: Package unsigned IPA
+        run: |
+          APP_PATH=$(find build/DerivedDataDevice/Build/Products -type d -path "*/Release-iphoneos/LuckyRemotePanel.app" | head -n 1)
+          if [ -z "$APP_PATH" ]; then
+            echo "LuckyRemotePanel.app for device not found"
+            find build/DerivedDataDevice/Build/Products -maxdepth 3 -type d | sort || true
+            exit 1
+          fi
+          rm -rf Payload
+          mkdir -p Payload
+          cp -R "$APP_PATH" Payload/LuckyRemotePanel.app
+          mkdir -p artifacts
+          ditto -c -k --sequesterRsrc --keepParent Payload artifacts/LuckyRemotePanel-unsigned.ipa
+          echo "DEVICE_APP_PATH=$APP_PATH"
+
+      - name: Upload unsigned IPA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: LuckyRemotePanel-unsigned-ipa
+          path: artifacts/LuckyRemotePanel-unsigned.ipa
+          if-no-files-found: error
 
       - name: Upload simulator app artifact
         uses: actions/upload-artifact@v4
@@ -60,10 +96,12 @@ jobs:
           path: artifacts/LuckyRemotePanel-simulator-app.zip
           if-no-files-found: error
 
-      - name: Upload DerivedData logs
+      - name: Upload build outputs
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: LuckyRemotePanel-derived-data
-          path: build/DerivedData
+          name: LuckyRemotePanel-build-outputs
+          path: |
+            build/DerivedDataSimulator
+            build/DerivedDataDevice
           if-no-files-found: ignore

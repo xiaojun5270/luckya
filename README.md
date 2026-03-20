@@ -22,7 +22,7 @@ Lucky 后台的 iOS 远程管理面板项目。
 - `SessionStore` 登录态注入与切换
 - 登录失败 / token 失效 / 退出登录后的旧数据清理
 - 最终联调文档补齐
-- GitHub Actions 无证书构建方案（Simulator Build）
+- GitHub Actions 无证书构建方案（Simulator Build + unsigned IPA）
 
 ## 当前仓库结构
 - `Docs/` 产品与接口分析文档
@@ -37,6 +37,7 @@ Lucky 后台的 iOS 远程管理面板项目。
 ### 当前产物
 GitHub Actions 目前输出：
 - iOS Simulator 版 `LuckyRemotePanel.app`（zip artifact）
+- `LuckyRemotePanel-unsigned.ipa`（未签名，可后续自签）
 - DerivedData / build 日志
 
 ### 触发方式
@@ -47,9 +48,10 @@ GitHub Actions 目前输出：
 当前是 **无证书构建**，因此目标是：
 - 验证项目可在 GitHub macOS 环境编译
 - 产出 simulator 构建产物
+- 产出可后续自签的 unsigned IPA
 
 不是：
-- 真机可安装签名 IPA
+- 已签名、可直接安装的真机 IPA
 
 如需真机 IPA，后续还需补：
 - Apple 证书
