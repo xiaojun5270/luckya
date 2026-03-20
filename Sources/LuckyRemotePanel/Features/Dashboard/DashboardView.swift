@@ -1,32 +1,42 @@
 import SwiftUI
 
 struct DashboardView: View {
+    @EnvironmentObject private var sessionStore: SessionStore
+    @StateObject private var viewModel: DashboardViewModel
+
+    init() {
+        _viewModel = StateObject(wrappedValue: DashboardViewModel(sessionStore: SessionStore()))
+    }
+
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 16) {
                     header
                     statusCards
-                    quickActions
                     recentActivity
                 }
                 .padding()
             }
             .background(Color.black.ignoresSafeArea())
             .navigationTitle("远程管理面板")
+            .task {
+                viewModel.bind(sessionStore: sessionStore)
+                await viewModel.load()
+            }
         }
     }
 
     private var header: some View {
         GlassCard {
             VStack(alignment: .leading, spacing: 8) {
-                Text("设备在线")
+                Text(viewModel.errorMessage == nil ? "设备在线" : "连接异常")
                     .font(.headline)
-                    .foregroundStyle(.green)
+                    .foregroundStyle(viewModel.errorMessage == nil ? .green : .orange)
                 Text("Lucky Remote Panel")
                     .font(.largeTitle.bold())
                     .foregroundStyle(.white)
-                Text("统一查看服务状态、日志与快捷控制")
+                Text(sessionStore.config.baseURL)
                     .foregroundStyle(.secondary)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -34,52 +44,20 @@ struct DashboardView: View {
     }
 
     private var statusCards: some View {
-        HStack(spacing: 12) {
-            metricCard(title: "在线服务", value: "12", color: .cyan)
-            metricCard(title: "告警", value: "2", color: .orange)
-        }
-    }
-
-    private func metricCard(title: String, value: String, color: Color) -> some View {
-        GlassCard {
-            VStack(alignment: .leading, spacing: 6) {
-                Text(title).foregroundStyle(.secondary)
-                Text(value)
-                    .font(.system(size: 34, weight: .bold))
-                    .foregroundStyle(color)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-        }
-    }
-
-    private var quickActions: some View {
-        GlassCard {
-            VStack(alignment: .leading, spacing: 12) {
-                Text("快捷操作")
-                    .font(.headline)
-                    .foregroundStyle(.white)
-                HStack {
-                    actionButton("刷新", systemImage: "arrow.clockwise")
-                    actionButton("日志", systemImage: "doc.text.magnifyingglass")
-                    actionButton("控制台", systemImage: "terminal")
+        LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
+            ForEach(viewModel.summaries) { item in
+                GlassCard {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text(item.title).foregroundStyle(.secondary)
+                        Text(item.value)
+                            .font(.system(size: 20, weight: .bold))
+                            .foregroundStyle(color(for: item.level))
+                            .lineLimit(2)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
         }
-    }
-
-    private func actionButton(_ title: String, systemImage: String) -> some View {
-        VStack(spacing: 8) {
-            Image(systemName: systemImage)
-                .font(.title2)
-            Text(title)
-                .font(.caption)
-        }
-        .foregroundStyle(.white)
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 12)
-        .background(.cyan.opacity(0.18))
-        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
 
     private var recentActivity: some View {
@@ -88,12 +66,34 @@ struct DashboardView: View {
                 Text("最近动态")
                     .font(.headline)
                     .foregroundStyle(.white)
-                Label("Gateway restarted successfully", systemImage: "checkmark.circle.fill")
-                    .foregroundStyle(.green)
-                Label("2 services need attention", systemImage: "exclamationmark.triangle.fill")
-                    .foregroundStyle(.orange)
+
+                if let error = viewModel.errorMessage {
+                    Text(error)
+                        .foregroundStyle(.orange)
+                }
+
+                ForEach(viewModel.activities.prefix(5)) { item in
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(item.title)
+                            .foregroundStyle(.white)
+                        Text(item.detail)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        Text(item.timestamp)
+                            .font(.caption2)
+                            .foregroundStyle(.gray)
+                    }
+                }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
+    private func color(for level: StatusLevel) -> Color {
+        switch level {
+        case .ok: return .green
+        case .warning: return .orange
+        case .error: return .red
         }
     }
 }

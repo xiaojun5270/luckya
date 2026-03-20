@@ -1,25 +1,42 @@
 import SwiftUI
 
 struct SettingsView: View {
-    @State private var serverURL = "http://192.168.9.102:16601"
-    @State private var username = "xiaojun"
+    @EnvironmentObject private var sessionStore: SessionStore
     @State private var biometricUnlock = true
 
     var body: some View {
         NavigationStack {
             Form {
                 Section("连接") {
-                    TextField("服务器地址", text: $serverURL)
-                    TextField("用户名", text: $username)
+                    LabeledContent("服务器") {
+                        Text(sessionStore.config.baseURL)
+                    }
+                    LabeledContent("用户名") {
+                        Text(sessionStore.config.username)
+                    }
                 }
 
                 Section("安全") {
                     Toggle("Face ID / 生物识别", isOn: $biometricUnlock)
                 }
 
+                Section("会话") {
+                    LabeledContent("登录状态") {
+                        Text(sessionStore.isLoggedIn ? "已登录" : "未登录")
+                    }
+                    if let token = sessionStore.authToken?.token {
+                        Text(token.prefix(24) + "...")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
+                    Button("退出登录", role: .destructive) {
+                        sessionStore.logout()
+                    }
+                }
+
                 Section("关于") {
                     Text("Lucky Remote Panel")
-                    Text("iOS 管理面板骨架 v0.1")
+                    Text("真实 Lucky API 对接中")
                         .foregroundStyle(.secondary)
                 }
             }

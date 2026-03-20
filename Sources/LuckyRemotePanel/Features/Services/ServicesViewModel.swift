@@ -7,15 +7,19 @@ final class ServicesViewModel: ObservableObject {
     @Published var errorMessage: String?
 
     private let api: LuckyAPIProtocol
-    private let sessionStore: SessionStore
+    private var sessionStore: SessionStore?
 
-    init(api: LuckyAPIProtocol = LuckyAPI(), sessionStore: SessionStore) {
+    init(api: LuckyAPIProtocol = LuckyAPI(), sessionStore: SessionStore? = nil) {
         self.api = api
         self.sessionStore = sessionStore
     }
 
+    func bind(sessionStore: SessionStore) {
+        self.sessionStore = sessionStore
+    }
+
     func load() async {
-        guard let token = sessionStore.authToken?.token else { return }
+        guard let sessionStore, let token = sessionStore.authToken?.token else { return }
         isLoading = true
         errorMessage = nil
         defer { isLoading = false }
@@ -23,7 +27,7 @@ final class ServicesViewModel: ObservableObject {
         do {
             services = try await api.fetchModules(baseURL: sessionStore.config.baseURL, token: token)
         } catch {
-            errorMessage = String(describing: error)
+            errorMessage = error.localizedDescription
         }
     }
 }

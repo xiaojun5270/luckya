@@ -36,7 +36,7 @@ final class LoginViewModel: ObservableObject {
             sessionStore.config = LuckyServerConfig(baseURL: server, username: username)
             sessionStore.updateToken(token)
         } catch {
-            errorMessage = String(describing: error)
+            errorMessage = error.localizedDescription
         }
     }
 }
