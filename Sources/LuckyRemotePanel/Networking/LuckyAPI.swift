@@ -69,25 +69,35 @@ final class LuckyAPI: LuckyAPIProtocol {
     }
 
     func fetchStatus(baseURL: String, token: String) async throws -> [LuckyStatusSummary] {
+        async let statusTask = fetchRuntimeStatus(baseURL: baseURL, token: token)
         async let infoTask = fetchInfo(baseURL: baseURL, token: token)
         async let modulesTask = fetchModulesResponse(baseURL: baseURL, token: token)
 
+        let status = try await statusTask
         let info = try await infoTask
         let modules = try await modulesTask
 
         var summaries: [LuckyStatusSummary] = []
+
         if let appName = info.info?.appName, let version = info.info?.version {
             summaries.append(.init(title: "系统", value: "\(appName) \(version)", level: .ok))
         }
-        if let os = info.info?.os, let arch = info.info?.arch {
-            summaries.append(.init(title: "平台", value: "\(os) / \(arch)", level: .ok))
+
+        if let usedCPU = status.data?.usedCPU {
+            let numeric = Double(usedCPU.replacingOccurrences(of: "%", with: "")) ?? 0
+            let level: StatusLevel = numeric >= 85 ? .error : (numeric >= 60 ? .warning : .ok)
+            summaries.append(.init(title: "CPU", value: usedCPU, level: level))
         }
 
-        let moduleCount = (modules.modules?.count ?? 0) + (modules.extraModules?.count ?? 0)
-        summaries.append(.init(title: "模块数", value: "\(moduleCount)", level: moduleCount > 0 ? .ok : .warning))
+        if let processUsedMem = status.data?.processUsedMem {
+            summaries.append(.init(title: "内存", value: processUsedMem, level: .ok))
+        }
 
-        if let goVersion = info.info?.goVersion {
-            summaries.append(.init(title: "Go", value: goVersion, level: .ok))
+        let totalModules = (modules.modules?.count ?? 0) + (modules.extraModules?.count ?? 0)
+        summaries.append(.init(title: "模块数", value: "\(totalModules)", level: totalModules > 0 ? .ok : .warning))
+
+        if let currentTCP = status.data?.currentTCPConnections {
+            summaries.append(.init(title: "TCP", value: currentTCP, level: .ok))
         }
 
         if summaries.isEmpty {
@@ -99,16 +109,16 @@ final class LuckyAPI: LuckyAPIProtocol {
     }
 
     func fetchLogs(baseURL: String, token: String) async throws -> [LuckyActivityItem] {
-        let data = try await sendGET(path: "/api/logs", baseURL: baseURL, token: token)
+        let data = try await sendGET(path: "/api/logs", baseURL: baseURL, token: token, queryItems: [URLQueryItem(name: "pre", value: "20")])
 
         if let payload = try? decoder.decode(LuckyLogsResponse.self, from: data) {
             let entries = payload.list ?? payload.data ?? payload.logs ?? []
             let items = entries.enumerated().map { index, entry in
                 LuckyActivityItem(
                     id: "log-\(index)",
-                    timestamp: entry.time ?? "now",
+                    timestamp: entry.timestamp ?? entry.time ?? "now",
                     title: entry.title ?? entry.level ?? "日志",
-                    detail: entry.detail ?? entry.msg ?? entry.message ?? ""
+                    detail: entry.detail ?? entry.log ?? entry.msg ?? entry.message ?? ""
                 )
             }
             if !items.isEmpty { return items }
@@ -152,13 +162,22 @@ final class LuckyAPI: LuckyAPIProtocol {
         }
     }
 
-    private func sendGET(path: String, baseURL: String, token: String) async throws -> Data {
-        guard let url = makeURL(baseURL: baseURL, path: path, includeTimestamp: true) else {
+    private func fetchRuntimeStatus(baseURL: String, token: String) async throws -> LuckyStatusResponse {
+        let data = try await sendGET(path: "/api/status", baseURL: baseURL, token: token)
+        do {
+            return try decoder.decode(LuckyStatusResponse.self, from: data)
+        } catch {
+            throw LuckyAPIError.decoding(error.localizedDescription)
+        }
+    }
+
+    private func sendGET(path: String, baseURL: String, token: String, queryItems: [URLQueryItem] = []) async throws -> Data {
+        guard let url = makeURL(baseURL: baseURL, path: path, includeTimestamp: true, extraQueryItems: queryItems) else {
             throw LuckyAPIError.invalidURL
         }
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
-        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        request.setValue(token, forHTTPHeaderField: "Lucky-Admin-Token")
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         let (data, response) = try await session.data(for: request)
         guard let http = response as? HTTPURLResponse else { throw LuckyAPIError.invalidResponse }
@@ -174,13 +193,14 @@ final class LuckyAPI: LuckyAPIProtocol {
         return data
     }
 
-    private func makeURL(baseURL: String, path: String, includeTimestamp: Bool) -> URL? {
+    private func makeURL(baseURL: String, path: String, includeTimestamp: Bool, extraQueryItems: [URLQueryItem] = []) -> URL? {
         guard var components = URLComponents(string: baseURL + path) else { return nil }
+        var items = components.queryItems ?? []
+        items.append(contentsOf: extraQueryItems)
         if includeTimestamp {
-            components.queryItems = (components.queryItems ?? []) + [
-                URLQueryItem(name: "_", value: String(Int(Date().timeIntervalSince1970 * 1000)))
-            ]
+            items.append(URLQueryItem(name: "_", value: String(Int(Date().timeIntervalSince1970 * 1000))))
         }
+        components.queryItems = items.isEmpty ? nil : items
         return components.url
     }
 }

@@ -25,7 +25,7 @@ struct SettingsView: View {
                         Text(sessionStore.isLoggedIn ? "已登录" : "未登录")
                     }
                     if let token = sessionStore.authToken?.token {
-                        Text(token.prefix(24) + "...")
+                        Text(String(token.prefix(24)) + "...")
                             .font(.caption2)
                             .foregroundStyle(.secondary)
                     }

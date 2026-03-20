@@ -96,20 +96,71 @@ struct LuckySystemInfo: Codable, Equatable {
 struct LuckyStatusResponse: Codable {
     let ret: Int?
     let u: String?
-    let data: [String: String]?
+    let data: LuckyRuntimeStatus?
+}
+
+struct LuckyRuntimeStatus: Codable, Equatable {
+    let heapInuse: String?
+    let numForcedGC: Int?
+    let numGC: Int?
+    let currentProcessUsedCPU: String?
+    let currentTCPConnections: String?
+    let currentUDPConnections: String?
+    let goroutine: String?
+    let handleCount: Int?
+    let lastNetInSpeed: Int64?
+    let lastNetOutSpeed: Int64?
+    let maxTCPConnections: String?
+    let netin: Int64?
+    let netout: Int64?
+    let processUsedMem: String?
+    let queryTime: String?
+    let runTime: String?
+    let systemBootTime: String?
+    let totleMem: Int64?
+    let unusedMem: Int64?
+    let usedCPU: String?
+    let usedMem: Int64?
+
+    enum CodingKeys: String, CodingKey {
+        case heapInuse = "HeapInuse"
+        case numForcedGC = "NumForcedGC"
+        case numGC = "NumGC"
+        case currentProcessUsedCPU
+        case currentTCPConnections
+        case currentUDPConnections
+        case goroutine
+        case handleCount
+        case lastNetInSpeed
+        case lastNetOutSpeed
+        case maxTCPConnections
+        case netin
+        case netout
+        case processUsedMem
+        case queryTime
+        case runTime
+        case systemBootTime
+        case totleMem
+        case unusedMem
+        case usedCPU
+        case usedMem
+    }
 }
 
 struct LuckyLogsResponse: Codable {
     let ret: Int?
+    let logsCount: Int?
     let list: [LuckyLogEntry]?
     let data: [LuckyLogEntry]?
     let logs: [LuckyLogEntry]?
 }
 
 struct LuckyLogEntry: Codable, Equatable {
+    let timestamp: String?
     let time: String?
     let title: String?
     let detail: String?
+    let log: String?
     let msg: String?
     let message: String?
     let level: String?
