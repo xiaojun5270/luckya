@@ -20,6 +20,8 @@ settings:
     INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
     INFOPLIST_KEY_UIStatusBarStyle: UIStatusBarStyleLightContent
     INFOPLIST_KEY_CFBundleDisplayName: LuckyA
+    INFOPLIST_KEY_NSAppTransportSecurity_NSExceptionDomains_192.168.9.102_NSTemporaryExceptionAllowsInsecureHTTPLoads: YES
+    INFOPLIST_KEY_NSAppTransportSecurity_NSExceptionDomains_192.168.9.102_NSIncludesSubdomains: NO
     LD_RUNPATH_SEARCH_PATHS:
       - $(inherited)
       - '@executable_path/Frameworks'
