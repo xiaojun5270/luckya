@@ -62,7 +62,7 @@ final class LuckyAPI: LuckyAPIProtocol {
         }
 
         guard payload.ret == 0, let token = payload.token, !token.isEmpty else {
-            throw LuckyAPIError.server(payload.msg ?? "登录失败")
+            throw LuckyAPIError.server(payload.msg?.isEmpty == false ? payload.msg! : "登录失败")
         }
 
         return LuckyAuthToken(token: token, safeURL: payload.safeURL, message: payload.msg)
